@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.coor.mapper.AdOrderMapper">
+
+	<sql id="period">
+		
+		<if test="sDate != null and !sDate.equals('') and sDate != null and !sDate.equals('')">
+			<![CDATA[
+			ord_regdate >= to_date(#{sDate}) 
+			and 
+			ord_regdate < to_date(#{eDate}) + 1
+			and
+			]]>
+		</if>
+	
+	</sql>
+	
+	<!-- 검색조건 작업 : include로 참조 -->
+	<sql id="criteria">
+		<trim prefix="(" suffix=") AND " prefixOverrides="OR"> <!-- trim태그 sql구문중에  맨 앞에 or가 중복되면 제거  -->
+			<foreach collection="cri.typeArr" item="type">
+				<trim prefix="OR">
+					<choose>
+						<when test="type == 'C'.toString()">
+							ord_code like '%' || #{cri.keyword} || '%'
+						</when>
+						<when test="type == 'I'.toString()">
+							mb_id like '%' || #{cri.keyword} || '%'
+						</when>
+						<when test="type == 'R'.toString()">
+							ord_name like '%' || #{cri.keyword} || '%'
+						</when>
+					</choose>
+				</trim>
+			</foreach>
+		</trim>
+	</sql>
+	
+	<!-- 조건식 sql 사용 -->
+	<select id="orderList" resultType="com.coor.domain.OrderVO" parameterType="com.coor.dto.Criteria">
+		<![CDATA[
+		SELECT 
+			ord_code, mb_id, ord_name, ord_price, ord_cancel, pay_method, ord_regdate
+		FROM 
+			( 
+        		SELECT /*+ INDEX_DESC(order_tbl PK_ORDER_TBL)  */ 
+        			rownum RN, ord_code, mb_id, ord_name, ord_price, ord_cancel, pay_method, ord_regdate
+				FROM 
+					order_tbl
+        		WHERE
+        			ord_cancel = 'N'
+        		AND
+        			
+        ]]>
+        		<include refid="period"></include>
+        		<include refid="criteria"></include>		
+        <![CDATA[		
+        		ROWNUM <= (#{cri.pageNum} * #{cri.amount})        	
+        		
+			)
+		WHERE 
+			RN > ((#{cri.pageNum} - 1) * #{cri.amount})
+		]]>
+	</select>
+	
+	<!-- 조건식 sql 사용 -->
+	<select id="getTotalCount" resultType="int" parameterType="com.coor.dto.Criteria">
+	
+		SELECT count(*) FROM order_tbl
+		WHERE 
+   			ord_cancel = 'N'
+   		AND
+		<include refid="period"></include>
+		<include refid="criteria"></include>
+		ord_code > 0
+	
+	</select>
+	
+	<select id="orderDetail" resultType="com.coor.domain.AdOrderDetailVO">
+	
+		SELECT 
+			ot.ord_code, ot.ordt_amount, ot.ordt_price, ot.pro_num, o.ord_cancel, o.ord_regdate, p.pro_name, p.pro_up_folder, p.pro_up_img, p.pro_dis_price, p.pro_price, p.pro_discount, pm.pay_price, pm.pay_method, pm.pay_date 
+		FROM 
+			ordetail_tbl ot INNER JOIN product_tbl p
+		ON 
+			ot.pro_num = p.pro_num
+		INNER JOIN payment_tbl pm
+		ON
+			ot.ord_code = pm.ord_code
+		INNER JOIN order_tbl o
+		ON
+			ot.ord_code = o.ord_code
+		WHERE 
+			ot.ord_code = #{ord_code}
+	
+	</select>
+	
+	
+	<select id="getPaymentInfo" resultType="com.coor.domain.PaymentVO">
+		SELECT
+			*
+		FROM
+			PAYMENT_TBL
+		WHERE
+			ord_code = #{ord_code}
+	</select>
+	
+	
+	<update id="orderCancel">
+		UPDATE 
+			ORDER_TBL
+		SET
+			ord_cancel = 'Y'
+		WHERE 
+			ord_code = #{ord_code}
+	</update>
+	
+	<!-- 조건식 sql 사용 -->
+	<select id="orderCancelList" resultType="com.coor.domain.OrderVO" parameterType="com.coor.dto.Criteria">
+		<![CDATA[
+		SELECT 
+			RN, ord_code, mb_id, ord_name, ord_price, ord_cancel, pay_method, ord_regdate
+		FROM 
+			( 
+        		SELECT /*+INDEX_DESC(ORDER_TBL PK_ORD_CODE)  */ 
+        			rownum RN, ord_code, mb_id, ord_name, ord_price, ord_cancel, pay_method, ord_regdate
+				FROM 
+					order_tbl
+        		WHERE
+        			ord_cancel = 'Y'
+        		AND
+        			
+        ]]>
+        		<include refid="period"></include>
+        		<include refid="criteria"></include>		
+        <![CDATA[		
+        		ROWNUM <= (#{cri.pageNum} * #{cri.amount})        			
+			
+				ORDER BY ord_code DESC
+        		
+			)
+		WHERE 
+			RN > ((#{cri.pageNum} - 1) * #{cri.amount})
+		]]>
+	</select>
+	
+	<!-- 조건식 sql 사용 -->
+	<select id="getTotalCancelCount" resultType="int" parameterType="com.coor.dto.Criteria">
+	
+		SELECT count(*) FROM order_tbl
+		WHERE 
+   			ord_cancel = 'Y'
+   		AND
+		<include refid="period"></include>
+		<include refid="criteria"></include>
+		ord_code > 0
+	
+	</select>
+	
+	<update id="checked_cancel">
+	<foreach collection="list" item="item" open="declare begin" separator=";" close="; end;">
+		UPDATE 
+			ORDER_TBL
+		SET
+			ord_code = #{item.ord_code}, ord_cancel = 'Y', ord_canceldate = sysdate
+	</foreach>
+	
+	</update>
+	
+</mapper>

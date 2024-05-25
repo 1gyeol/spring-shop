@@ -1,0 +1,20 @@
+
+/* section start */
+
+/* 비주얼 영역 */
+.visaul-list ul {display:flex; flex-wrap: wrap;}
+.visaul-list ul li {width: calc(25% - 10.5px); margin-left: 14px; padding:0;}
+.visaul-list ul li img {width: 100%;}
+.visaul-list ul li:nth-child(4n+1) { margin-left: 0;}
+.visaul-list ul li + li + li + li + li { margin-top: 10px;}
+
+.mainTextWrapper {padding: 160px 40px 225px}
+.mainTextWrapper .img-wrap {padding: 180px 15px 9.114vw;}
+.mainTextWrapper .img-wrap ul { display: flex; flex-wrap: wrap;}
+.mainTextWrapper .img-wrap ul li { width: calc(50% - 6px); margin-left: 12px; padding:0;}
+.mainTextWrapper .img-wrap ul li:nth-child(2n+1) { margin-left: 0;}
+.mainTextWrapper .img-wrap ul li + li + li { margin-top: 8px;}
+.mainTextWrapper .img-wrap ul li img { width: 100%;}
+
+
+/* section end */

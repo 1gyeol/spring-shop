@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.coor.mapper.ContactMapper">
+
+	<select id="contact_list" resultType="com.coor.domain.ContactVO">
+		<![CDATA[
+ 		SELECT 
+ 			RN, contact_num, mb_id, pro_num, ord_code, contact_title, contact_content, contact_status, contact_regdate, contact_re, contact_re_date
+		FROM 
+			( 
+        		SELECT /*+ INDEX_DESC(CONTACT_TBL PK_CONTACT_CODE)*/
+        			ROWNUM RN, contact_num, mb_id, pro_num, ord_code, contact_title, contact_content, contact_status, contact_regdate, contact_re, contact_re_date
+        		FROM CONTACT_TBL
+        		WHERE
+        			mb_id = #{mb_id}
+                AND
+        			ROWNUM <= (#{cri.pageNum} * #{cri.amount}) 
+			)
+		WHERE 
+			RN > ((#{cri.pageNum} - 1) * #{cri.amount})
+ 		]]>
+	</select>
+	<select id="getTotalCount" resultType="int">
+ 	
+ 		SELECT 
+ 			COUNT(*) 
+ 		FROM 
+ 			CONTACT_TBL 
+ 		WHERE 
+ 			mb_id = #{mb_id}
+ 		and 		
+			contact_num > 0
+ 	
+ 	</select>
+ 	
+ 	<select id="getMbContactCount" resultType="int">
+ 	
+ 		SELECT 
+ 			COUNT(*) 
+ 		FROM 
+ 			CONTACT_TBL 
+ 		WHERE 
+ 			mb_id = #{mb_id}
+ 	
+ 	</select>
+ 	
+ 	<select id="getContact" resultType="com.coor.domain.ContactVO">
+ 		SELECT
+ 			contact_num, mb_id, pro_num, ord_code, contact_type, contact_title, contact_content, contact_status, contact_re, contact_regdate, contact_re_date	
+ 		FROM
+ 			CONTACT_TBL
+ 		WHERE
+ 			contact_num = #{contact_num}
+ 	</select>
+ 	
+ 	<insert id="insert">
+ 	
+ 		INSERT INTO 
+ 			CONTACT_TBL(contact_num, mb_id, pro_num, ord_code, contact_type, contact_title, contact_content)
+ 		VALUES(
+ 			SEQ_CONTACT_TBL.NEXTVAL, #{mb_id}, #{pro_num}, #{ord_code}, #{contact_type}, #{contact_title}, #{contact_content}
+ 			)
+ 		
+		<selectKey keyProperty="contact_num" resultType="Long" order="AFTER">
+			SELECT SEQ_CONTACT_TBL.CURRVAL FROM DUAL
+		</selectKey>
+ 	
+ 	</insert>
+ 	
+ 	<update id="modify">
+ 	
+ 		UPDATE
+ 			CONTACT_TBL
+ 		SET
+ 			pro_num = #{pro_num}, ord_code = #{ord_code}, contact_type = #{contact_type}, contact_title = #{contact_title}, contact_content = #{contact_content}, contact_updatedate = sysdate
+ 		WHERE
+ 			contact_num = #{contact_num}
+ 	
+ 	</update>
+ 	
+ 	<delete id="delete">
+ 	
+ 		DELETE FROM 
+ 			CONTACT_TBL
+ 		WHERE
+ 			contact_num = #{contact_num}
+ 	</delete>
+</mapper>

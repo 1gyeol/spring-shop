@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.coor.mapper.MemberMapper">
+
+	<!-- 아이디 중복 체크 -->
+	<select id="idCheck" resultType="String">
+		SELECT
+			mb_id
+		FROM
+			MEMBER_TBL
+		WHERE
+			mb_id = #{mb_id}
+	</select>
+	
+	<!-- 회원가입 -->
+	<insert id="join">
+		INSERT INTO
+			MEMBER_TBL(mb_id, mb_pw, mb_name, mb_phone, mb_email, mb_zipcode, mb_addr, mb_deaddr, mb_birth)
+		VALUES(
+			#{mb_id}, #{mb_pw}, #{mb_name}, #{mb_phone}, #{mb_email}, #{mb_zipcode}, #{mb_addr}, #{mb_deaddr}, #{mb_birth}
+			)
+	</insert>
+	
+	<!-- 로그인 -->
+	<select id="login" resultType="com.coor.domain.MemberVO">
+		SELECT
+			mb_id, mb_pw, mb_name, mb_phone, mb_email, mb_birth, mb_lastdate
+		FROM
+			MEMBER_TBL
+		WHERE
+			MB_ID = #{mb_id}
+	</select>
+	
+	<update id="now_visit">
+		UPDATE
+			MEMBER_TBL
+		SET
+			mb_lastdate = sysdate
+		WHERE
+			mb_id = mb_id
+	</update>
+	
+	<select id="findId" resultType="string">
+		SELECT
+			mb_id
+		FROM
+			MEMBER_TBL
+		WHERE
+			mb_name = #{mb_name}
+		AND
+			mb_phone = ${mb_phone}
+	</select>
+	
+	<select id="findPw" resultType="string">
+		SELECT
+			mb_id, mb_name, mb_pw
+		FROM
+			MEMBER_TBL
+		WHERE
+			mb_id = #{mb_id} and mb_name = #{mb_name} and mb_email = #{mb_email}
+	</select>
+	
+	<update id="updateTempPw">
+		UPDATE
+			MEMBER_TBL
+		SET
+			mb_pw = #{enc_temp_pw}, mb_updatedate = sysdate
+		WHERE
+			mb_id = #{mb_id}
+	</update>
+	
+
+	<update id="updatePw">
+		UPDATE
+			MEMBER_TBL
+		SET
+			mb_pw = #{enc_mb_pw}, mb_updatedate = sysdate
+		WHERE
+			mb_id = #{mb_id}
+	</update>
+		
+	<select id="mypage" resultType="com.coor.domain.MemberVO">
+		SELECT
+			mb_id, mb_pw, mb_name, mb_phone, mb_email, mb_zipcode, mb_addr, mb_deaddr, mb_birth
+		FROM
+			MEMBER_TBL
+		WHERE
+			mb_id = #{mb_id}
+	</select>
+	
+	<update id="modify">
+		UPDATE
+			MEMBER_TBL
+		SET
+			mb_email = #{mb_email}, mb_phone = #{mb_phone}, mb_birth = #{mb_birth}, mb_zipcode = #{mb_zipcode}, mb_addr = #{mb_addr}, mb_deaddr = #{mb_deaddr}, mb_updatedate = sysdate
+		WHERE
+			mb_id = #{mb_id}
+	</update>
+</mapper>

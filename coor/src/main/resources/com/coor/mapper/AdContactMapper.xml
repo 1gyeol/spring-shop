@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.coor.mapper.AdContactMapper">
+	<!-- 검색조건 작업 : include로 참조 -->
+	<sql id="criteria">
+		<trim prefix="(" suffix=") AND " prefixOverrides="OR"> <!-- trim태그 sql구문중에  맨 앞에 or가 중복되면 제거  -->
+			<foreach collection="typeArr" item="type">
+				<trim prefix="OR">
+					<choose>
+						<when test="type == 'CN'.toString()">
+							contact_title like '%' || #{keyword} || '%'
+						</when>					
+					</choose>
+				</trim>
+			</foreach>
+		</trim>
+	</sql>
+	<select id="contact_list" resultType="com.coor.domain.ContactVO">
+		<![CDATA[
+ 		SELECT 
+ 			RN, contact_num, mb_id, pro_num, ord_code, contact_title, contact_content, contact_status, contact_regdate, contact_re, contact_re_date
+		FROM 
+			( 
+        		SELECT /*+ INDEX_DESC(CONTACT_TBL PK_CONTACT_CODE)*/
+        			ROWNUM RN, contact_num, mb_id, pro_num, ord_code, contact_title, contact_content, contact_status, contact_regdate, contact_re, contact_re_date
+        		FROM 
+        			CONTACT_TBL
+        		WHERE
+        ]]>
+					<include refid="criteria"></include>
+		<![CDATA[	
+        			ROWNUM <= (#{pageNum} * #{amount}) 
+			)
+		WHERE 
+			RN > ((#{pageNum} - 1) * #{amount})
+ 		]]>
+	</select>
+	<select id="getTotalCount" resultType="int">
+ 	
+ 		SELECT 
+ 			COUNT(*) 
+ 		FROM 
+ 			CONTACT_TBL 
+ 		WHERE
+ 			<include refid="criteria"></include>
+ 		contact_num > 0
+ 	</select>
+ 	
+ 	<select id="getContact" resultType="com.coor.domain.ContactVO">
+ 		SELECT
+ 			contact_num, mb_id, pro_num, ord_code, contact_type, contact_title, contact_content, contact_status, contact_re, contact_regdate, contact_re_date	
+ 		FROM
+ 			CONTACT_TBL
+ 		WHERE
+ 			contact_num = #{contact_num}
+ 	</select>
+ 	
+ 	<insert id="insert">
+ 	
+ 		INSERT INTO 
+ 			CONTACT_TBL(contact_num, mb_id, pro_num, ord_code, contact_type, contact_title, contact_content)
+ 		VALUES(
+ 			SEQ_CONTACT_TBL.NEXTVAL, #{mb_id}, #{pro_num}, #{ord_code}, #{contact_type}, #{contact_title}, #{contact_content}
+ 			)
+ 		
+		<selectKey keyProperty="contact_num" resultType="Long" order="AFTER">
+			SELECT SEQ_CONTACT_TBL.CURRVAL FROM DUAL
+		</selectKey>
+ 	
+ 	</insert>
+ 	
+ 	<update id="reply">
+ 	
+ 		UPDATE
+ 			CONTACT_TBL
+ 		SET
+ 			contact_re = '${contact_re}', contact_status = 'Y', contact_re_date = sysdate
+ 		WHERE
+ 			contact_num = #{contact_num}
+ 	
+ 	</update>
+ 	
+ 	<delete id="delete">
+ 	
+ 		DELETE FROM 
+ 			CONTACT_TBL
+ 		WHERE
+ 			contact_num = #{contact_num}
+ 	</delete> 	
+	
+	<delete id="checked_delete">
+		DELETE FROM
+			CONTACT_TBL
+		WHERE
+			contact_num IN
+			<foreach collection="list" item="contact_num" open="(" separator="," close =")">
+				#{contact_num}
+			</foreach>
+	</delete>
+</mapper>

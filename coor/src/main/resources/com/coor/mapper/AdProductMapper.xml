@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.coor.mapper.AdProductMapper">
+		
+	<select id="getCategoryList" resultType="com.coor.domain.CategoryVO">
+		SELECT
+		    cat_code, cat_prtcode, cat_name
+		FROM
+		    CATEGORY_TBL
+		WHERE
+		    cat_prtcode IS null
+	</select>
+
+
+	<select id="subCategoryList"  resultType="com.coor.domain.CategoryVO">
+		SELECT
+			cat_code, cat_prtcode, cat_name
+		FROM
+			category_tbl 
+		WHERE
+			cat_prtcode = #{cat_prtcode}
+		
+	</select>
+	
+	<insert id="pro_insert">
+		INSERT INTO
+			PRODUCT_TBL(pro_num, cat_code, pro_name, pro_price, pro_discount, pro_content, pro_img_content, pro_up_folder, pro_up_img, pro_amount, pro_buy, pro_dis_price)
+		VALUES(seq_pro_num.NEXTVAL, #{cat_code}, #{pro_name}, #{pro_price}, #{pro_discount}, #{pro_content}, #{pro_img_content}, #{pro_up_folder}, #{pro_up_img}, #{pro_amount}, #{pro_buy},  case when #{pro_discount} = 0 then #{pro_price} else  (#{pro_price} * (100 - #{pro_discount}) / 100) end )		
+		<selectKey keyProperty="pro_num" resultType="Integer" order="AFTER">
+			SELECT seq_pro_num.CURRVAL FROM DUAL
+		</selectKey>		
+	</insert>
+	
+	<select id="getProduct" resultType="com.coor.domain.ProductVO">
+		SELECT
+			p.pro_num, p.cat_code, c.cat_prtcode, c.cat_name, p.pro_name, p.pro_price, p.pro_discount, p.pro_dis_price, p.pro_content, p.pro_up_folder, p.pro_up_img, p.pro_img_content, p.pro_amount, p.pro_buy, p.pro_show, p.pro_date, p.pro_updatedate
+		FROM
+			PRODUCT_TBL p INNER JOIN CATEGORY_TBL c
+		ON
+			p.cat_code = c.cat_code
+		WHERE
+			p.pro_num = #{pro_num}
+	</select>
+	
+	<update id="pro_modify">
+		UPDATE
+			PRODUCT_TBL
+		SET
+			cat_code = #{cat_code}, pro_name = #{pro_name}, pro_price = #{pro_price}, pro_discount = #{pro_discount}, pro_content = #{pro_content}, pro_img_content = #{pro_img_content}, pro_up_folder = #{pro_up_folder}, pro_up_img = #{pro_up_img}, pro_amount = #{pro_amount}, pro_buy = #{pro_buy}, pro_show = #{pro_show}, pro_updatedate = sysdate, pro_dis_price = case when #{pro_discount} = 0 then #{pro_price} else  (#{pro_price} * (100 - #{pro_discount}) / 100) end 
+		WHERE
+			pro_num = #{pro_num}
+	</update>
+	
+	
+	<update id="pro_delete">
+		UPDATE
+			PRODUCT_TBL
+		SET
+			pro_show = 'N', pro_updatedate = sysdate 
+		WHERE
+			pro_num = #{pro_num}
+	</update>
+	
+	
+	<update id="pro_checked_modify">
+		<foreach collection="list" item="item" open="declare begin" separator=";" close="; end;">
+			UPDATE
+				PRODUCT_TBL
+			SET
+				pro_price = #{item.pro_price}, pro_buy = #{item.pro_buy}, pro_show = #{item.pro_show}
+			WHERE
+				pro_num = #{item.pro_num}
+		</foreach>
+	</update>
+	
+	<delete id="pro_checked_delete">
+		UPDATE
+			PRODUCT_TBL
+		SET
+			pro_show = 'N'
+		WHERE
+			pro_num IN
+			<foreach collection="list" item="pro_num" open="(" separator="," close=")">
+				#{pro_num}
+			</foreach>
+	</delete>
+	
+	<!-- 
+	<sql id="category">
+		<if test="cat_code != null">
+		    cat_code = #{cat_code}
+		    AND
+		</if>
+	</sql>
+	 -->
+	<!-- 검색조건 작업 : include로 참조 -->
+	<sql id="criteria">
+		<trim prefix="(" suffix=") AND " prefixOverrides="OR"> <!-- trim태그 sql구문중에  맨 앞에 or가 중복되면 제거  -->
+			<foreach collection="typeArr" item="type">
+				<trim prefix="OR">
+					<choose>
+						<when test="type == 'N'.toString()">
+							pro_name like '%' || #{keyword} || '%'
+						</when>
+						<when test="type == 'C'.toString()">
+							pro_content like '%' || #{keyword} || '%'
+						</when>						
+					</choose>
+				</trim>
+			</foreach>
+		</trim>
+	</sql>
+	
+	<select id="getListWithPaging" resultType="com.coor.domain.ProductVO">
+		<![CDATA[
+		SELECT
+			pro_num, cat_code, pro_name, pro_price, pro_discount, pro_dis_price, pro_content, pro_up_folder, pro_up_img, pro_amount, pro_buy, pro_show, pro_date, pro_updatedate
+		FROM
+			(
+			SELECT /*+ INDEX_DESC(PRODUCT_TBL PK_PRO_NUM)*/
+				ROWNUM RN, pro_num, cat_code, pro_name, pro_price, pro_dis_price, pro_discount, pro_content, pro_up_folder, pro_up_img, pro_amount, pro_buy, pro_show, pro_date, pro_updatedate
+			FROM
+				PRODUCT_TBL
+			WHERE
+		]]>
+			<include refid="criteria"></include>
+		<![CDATA[		
+			ROWNUM <= (#{pageNum} * #{amount})
+			
+			ORDER BY pro_num DESC
+			)
+		WHERE
+			RN > ((#{pageNum} - 1) * #{amount})
+		]]>
+	</select>
+	
+	<select id="getTotalCount" resultType="int">
+		SELECT
+			COUNT(*)
+		FROM
+			PRODUCT_TBL
+		WHERE
+			<include refid="criteria"></include>
+			pro_num > 0
+	</select>
+	
+	<select id="get" resultType="com.coor.domain.CategoryVO">
+	
+		SELECT 
+			cat_code, cat_prtcode, cat_name 
+		FROM 
+			CATEGORY_TBL 
+		WHERE 
+			cat_code = (
+				SELECT 
+					cat_prtcode 
+				FROM 
+					CATEGORY_TBL 
+				WHERE 
+					cat_code = #{cat_code}
+			)
+	
+	</select>
+	
+</mapper>

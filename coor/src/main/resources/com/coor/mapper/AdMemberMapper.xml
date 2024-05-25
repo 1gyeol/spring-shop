@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.coor.mapper.AdMemberMapper">
+
+	<!-- 아이디 중복 체크 -->
+	<select id="idCheck" resultType="String">
+		SELECT
+			mb_id
+		FROM
+			MEMBER_TBL
+		WHERE
+			mb_id = #{mb_id}
+	</select>	
+	
+	<insert id="mb_insert">
+		INSERT INTO 
+			MEMBER_TBL(mb_id, mb_pw, mb_name, mb_phone, mb_email, mb_birth)
+		VALUES(
+			#{mb_id}, #{mb_pw}, #{mb_name}, #{mb_phone}, #{mb_email}, #{mb_birth}
+			)	
+	</insert>
+	
+	<!-- 검색 페이징 기능 -->
+	<sql id="criteria">
+		<trim prefix="(" suffix=") AND " prefixOverrides="OR">
+			<foreach collection="typeArr" item="type">
+				<trim prefix="OR">
+					<choose>
+						<when test="type == 'MI'.toString()">
+							mb_id like '%' || #{keyword} || '%'
+						</when>
+						<when test="type == 'MNA'.toString()">
+							mb_name like '%' || #{keyword} || '%'
+						</when>						
+						<when test="type == 'MAD'.toString()">
+							mb_addr like '%' || #{keyword} || '%'
+						</when>
+					</choose>
+				</trim>
+			</foreach>
+		</trim>
+	</sql>	
+	
+	<select id="getListWithPaging" resultType="com.coor.domain.MemberVO">
+		<![CDATA[
+		SELECT
+			rn, mb_id, mb_pw, mb_name, mb_phone, mb_email, mb_birth, mb_zipcode, mb_addr, mb_deaddr, mb_regdate, mb_updatedate, mb_lastdate
+		FROM
+			(
+			SELECT
+				ROWNUM rn, mb_id, mb_pw, mb_name, mb_phone, mb_email, mb_birth, mb_zipcode, mb_addr, mb_deaddr, mb_regdate, mb_updatedate, mb_lastdate
+			FROM
+			 	MEMBER_TBL
+			WHERE
+		]]>
+			<include refid="criteria"></include>
+		<![CDATA[
+			ROWNUM <= (#{pageNum} * #{amount})
+			ORDER BY mb_regdate DESC
+			)
+		WHERE
+			rn > ((#{pageNum} - 1) * #{amount})
+		]]>	
+	</select>
+	
+	<select id="getTotalCount" resultType="int">
+		SELECT
+			COUNT(*)
+		FROM
+			MEMBER_TBL			
+		WHERE
+			<include refid="criteria"></include>
+			(
+			SELECT
+				COUNT(*)
+			FROM
+				MEMBER_TBL
+			) > 0
+	</select>
+	
+	<select id="getDelListWithPaging" resultType="com.coor.domain.MemberVO">
+		<![CDATA[
+		SELECT
+			rn, mb_id, mb_pw, mb_name, mb_phone, mb_email, mb_birth, mb_zipcode, mb_addr, mb_deaddr, mb_regdate, mb_updatedate, mb_lastdate, mb_deletedate
+		FROM
+			(
+			SELECT
+				ROWNUM rn, mb_id, mb_pw, mb_name, mb_phone, mb_email, mb_birth, mb_zipcode, mb_addr, mb_deaddr, mb_regdate, mb_updatedate, mb_lastdate, mb_deletedate
+			FROM
+			 	MEMBER_DEL_LIST
+			WHERE
+		]]>
+			<include refid="criteria"></include>
+		<![CDATA[
+			ROWNUM <= (#{pageNum} * #{amount})
+			ORDER BY mb_regdate DESC
+			)
+		WHERE
+			rn > ((#{pageNum} - 1) * #{amount})
+		]]>	
+	</select>
+	
+	<select id="getDelTotalCount" resultType="int">
+		SELECT
+			COUNT(*)
+		FROM
+			MEMBER_DEL_LIST			
+		WHERE
+			<include refid="criteria"></include>
+			(
+			SELECT
+				COUNT(*)
+			FROM
+				MEMBER_DEL_LIST
+			) > 0
+	</select>
+	
+	<select id="mb_detail" resultType="com.coor.domain.MemberVO">
+		SELECT 
+			MB_ID, MB_PW, MB_NAME, MB_PHONE, MB_EMAIL, MB_BIRTH, MB_ZIPCODE, MB_ADDR, MB_DEADDR, MB_REGDATE
+		FROM
+			MEMBER_TBL
+		WHERE 
+			mb_id = #{mb_id}
+	</select>
+	
+	<select id="mb_del_detail" resultType="com.coor.domain.MemberVO">
+		SELECT 
+			MB_ID, MB_PW, MB_NAME, MB_PHONE, MB_EMAIL, MB_BIRTH, MB_ZIPCODE, MB_ADDR, MB_DEADDR, MB_REGDATE, MB_DELETEDATE
+		FROM
+			MEMBER_DEL_LIST
+		WHERE 
+			mb_id = #{mb_id}
+	</select>
+	
+	<update id="mb_modify">
+		UPDATE
+			MEMBER_TBL
+		SET
+			mb_name = #{mb_name}, mb_phone = #{mb_phone}, mb_email = #{mb_email}, mb_birth = #{mb_birth}, mb_zipcode = #{mb_zipcode}, mb_addr = #{mb_addr}, mb_deaddr = #{mb_deaddr}, mb_updatedate = sysdate
+		WHERE
+			mb_id = #{mb_id}
+	</update>
+	
+	
+	<update id="updateTempPw">
+		UPDATE
+			MEMBER_TBL
+		SET
+			mb_pw = #{enc_temp_pw}, mb_updatedate = sysdate
+		WHERE
+			mb_id = #{mb_id}
+	</update>
+	
+	<delete id="mb_delete">
+		DELETE FROM
+			MEMBER_TBL
+		WHERE
+			mb_id = #{mb_id}
+	</delete>
+	
+	
+	<update id="mb_checked_modify">
+	<foreach collection="list" item="item" open="declare begin" separator=";" close="; end;">
+		UPDATE 
+			MEMBER_TBL
+		SET
+			mb_name = #{item.mb_name}, mb_phone = #{item.mb_phone}, mb_email = #{item.mb_email}, mb_birth = #{item.mb_birth}, mb_updatedate = sysdate
+	</foreach>
+	
+	</update>
+	
+	<delete id="mb_checked_delete">
+		DELETE FROM
+			MEMBER_TBL
+		WHERE
+			mb_id IN
+			<foreach collection="list" item="mb_id" open="(" separator="," close =")">
+				#{mb_id}
+			</foreach>
+	</delete>
+</mapper>

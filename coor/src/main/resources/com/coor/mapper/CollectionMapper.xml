@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.coor.mapper.CollectionMapper">
+	
+	<select id="getCollection" resultType="com.coor.domain.CollectionVO">
+		SELECT
+			col_num, col_name, col_content, col_regdate, col_updatedate
+		FROM
+			COLLECTION_TBL
+		WHERE
+			col_num = #{col_num}
+	</select>
+	
+	
+	<select id="getCollectionList" resultType="com.coor.domain.CollectionVO">
+		SELECT /*+INDEX_DESC(COLLECTION_TBL pk_collection_num) */
+			col_num, col_name
+		FROM
+			COLLECTION_TBL
+	</select>
+	
+</mapper>

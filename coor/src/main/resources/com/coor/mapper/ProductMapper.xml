@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.coor.mapper.ProductMapper">
+
+	
+	<select id="subCategoryList2"  resultType="com.coor.domain.CategoryVO">
+		SELECT
+			cat_code, cat_prtcode, cat_name
+		FROM
+			category_tbl 
+		WHERE
+			cat_prtcode IS NOT NULL
+		
+	</select>
+	
+	<select id="subCategoryList"  resultType="com.coor.domain.CategoryVO">
+		SELECT
+			cat_code, cat_prtcode, cat_name
+		FROM
+			category_tbl 
+		WHERE
+			cat_prtcode = #{cat_prtcode}
+		
+	</select>
+	
+	<select id="getCatCode" resultType="com.coor.domain.CategoryVO">
+		SELECT
+			cat_code, cat_prtcode, cat_name
+        FROM 
+    		CATEGORY_TBL
+    	WHERE
+    		cat_code = #{cat_code}	    
+	</select>
+	
+	<select id="getPrtCode" resultType="com.coor.domain.CategoryVO">
+		SELECT
+			cat_code, cat_prtcode, cat_name
+		FROM
+			CATEGORY_TBL
+		WHERE
+			cat_code = 
+				(SELECT 
+					cat_prtcode 
+				FROM 
+					CATEGORY_TBL 
+				WHERE 
+					cat_code = #{cat_code})
+	</select>
+	
+	<sql id="criteria">
+		<trim prefix="(" suffix=") AND " prefixOverrides="OR"> <!-- trim태그 sql구문중에  맨 앞에 or가 중복되면 제거  -->
+			<foreach collection="cri.typeArr" item="type">
+				<trim prefix="OR">
+					<choose>
+						<when test="type == 'N'.toString()">
+							pro_name like '%' || #{cri.keyword} || '%'
+						</when>						
+					</choose>
+				</trim>
+			</foreach>
+		</trim>
+	</sql>
+	
+	<!-- 카테고리 선택시 상품 리스트 출력 -->
+	<select id="getListWithPaging" resultType="com.coor.domain.ProductVO">
+		<![CDATA[
+		SELECT 
+			pro_num, cat_code, cat_prtcode, cat_name, pro_name, pro_price, pro_discount, pro_dis_price, pro_content, pro_up_folder, pro_up_img, pro_amount, pro_buy, pro_show, pro_date, pro_updatedate
+		FROM 
+			( 
+			SELECT /*+ INDEX_DESC(PRODUCT_TBL PK_PRO_NUM)*/
+	    		ROWNUM RN, p.pro_num, p.cat_code, c.cat_prtcode, c.cat_name, p.pro_name, p.pro_price, p.pro_discount, p.pro_dis_price, p.pro_content, p.pro_up_folder, p.pro_up_img, p.pro_amount, p.pro_buy, p.pro_show, p.pro_date, p.pro_updatedate
+	        FROM 
+	    		PRODUCT_TBL p 
+	    	INNER JOIN CATEGORY_TBL c
+			ON
+				p.cat_code = c.cat_code 
+	    	WHERE
+	    		p.pro_show = 'Y'
+	    	AND
+			    p.cat_code = #{cat_code}
+			AND		
+        		ROWNUM <= (#{cri.pageNum} * #{cri.amount}) 
+        		
+			) 				
+		WHERE 
+			RN > ((#{cri.pageNum} - 1) * #{cri.amount})
+		]]>
+	
+	</select>
+	
+	<select id="getTotalCount" resultType="int">
+	
+		SELECT 
+			COUNT(*) 
+		FROM 
+			PRODUCT_TBL
+		WHERE 
+			cat_code = #{cat_code}
+		AND
+			pro_show = 'Y'
+		AND	
+			pro_num > 0
+	
+	</select>
+	
+	<select id="getProduct" resultType="com.coor.domain.ProductVO">
+		SELECT
+			p.pro_num, p.cat_code, c.cat_prtcode, c.cat_name, p.pro_name, p.pro_price, p.pro_discount, p.pro_dis_price, p.pro_up_folder, p.pro_up_img, p.pro_amount, p.pro_buy, p.pro_content, p.pro_img_content, p.pro_show, p.pro_date, p.pro_updatedate
+		FROM
+			PRODUCT_TBL p 
+		INNER JOIN
+			CATEGORY_TBL c
+		ON
+			p.cat_code = c.cat_code
+		WHERE
+			p.pro_num = #{pro_num}
+	</select>
+
+</mapper>

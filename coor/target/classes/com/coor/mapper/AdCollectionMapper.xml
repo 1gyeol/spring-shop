@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.coor.mapper.AdCollectionMapper">
+	
+	<insert id="col_insert">
+		INSERT INTO
+			COLLECTION_TBL(col_num, col_name, col_content)
+		VALUES(
+			SEQ_COLLECTION_NUM.NEXTVAL, #{col_name}, #{col_content}
+			)
+	</insert>
+	
+	<!-- 검색조건 작업 : include로 참조 -->
+	<sql id="criteria">
+		<trim prefix="(" suffix=") AND " prefixOverrides="OR"> <!-- trim태그 sql구문중에  맨 앞에 or가 중복되면 제거  -->
+			<foreach collection="typeArr" item="type">
+				<trim prefix="OR">
+					<choose>
+						<when test="type == 'N'.toString()">
+							col_name like '%' || #{keyword} || '%'
+						</when>					
+					</choose>
+				</trim>
+			</foreach>
+		</trim>
+	</sql>
+	
+	<select id="getListWithPaging" resultType="com.coor.domain.CollectionVO">
+		<![CDATA[
+		SELECT
+			RN, col_num, col_name, col_content, col_show, col_regdate, col_updatedate
+		FROM
+			(
+			SELECT /*+INDEX_DESC(COLLECTION_TBL pk_collection_num) */
+				ROWNUM RN, col_num, col_name, col_content, col_show, col_regdate, col_updatedate
+			FROM
+				COLLECTION_TBL
+			WHERE
+		]]>
+			<include refid="criteria"></include>
+		<![CDATA[		
+			ROWNUM <= (#{pageNum} * #{amount})
+			)
+		WHERE
+			RN > ((#{pageNum} - 1) * #{amount})
+		]]>
+	</select>
+	
+	<select id="getTotalCount" resultType="int">
+		SELECT
+			COUNT(*)
+		FROM
+			COLLECTION_TBL
+		WHERE
+			<include refid="criteria"></include>
+			col_num > 0
+	</select>
+	
+	
+	<select id="getCollection" resultType="com.coor.domain.CollectionVO">
+		SELECT
+			col_num, col_name, col_content, col_regdate, col_updatedate
+		FROM
+			COLLECTION_TBL
+		WHERE
+			col_num = #{col_num}
+	</select>
+	
+	<update id="col_modify">
+		UPDATE
+			COLLECTION_TBL
+		SET
+			col_name = #{col_name}, col_content = #{col_content}, col_show = #{col_show}, col_updatedate = sysdate
+		WHERE
+			col_num = #{col_num}
+	</update>
+	
+	<delete id="col_delete">
+		UPDATE
+			COLLECTION_TBL
+		SET
+			col_show = 'N'
+		WHERE
+			col_num = #{col_num}
+	</delete>
+	
+	<update id="col_checked_modify">
+		
+		<foreach collection="list" item="item" open="declare begin" separator=";" close="; end;">
+			
+			UPDATE 
+					COLLECTION_TBL
+			SET
+				pro_price = #{item.pro_price}, pro_buy = #{item.pro_buy}
+			WHERE
+				pro_num = #{item.pro_num}				
+			
+		</foreach>
+	</update>	
+	
+	<delete id="col_checked_delete">
+	
+		DELETE FROM 
+			COLLECTION_TBL
+		where
+			col_num in
+			<foreach collection="list" item="col_num" open="(" separator="," close=")">
+				#{col_num}
+			</foreach>
+	</delete>
+	
+</mapper>

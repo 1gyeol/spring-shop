@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.coor.mapper.OrderMapper">
+
+	<insert id="order_save" parameterType="com.coor.domain.OrderVO">
+	
+		<selectKey keyProperty="ord_code" order="BEFORE" resultType="Long">
+			SELECT SEQ_ORDER_TBL.nextval FROM DUAL
+		</selectKey>	
+	
+		INSERT INTO ORDER_TBL(ord_code, mb_id, ord_name, ord_zipcode, ord_addr, ord_deaddr, ord_tel, ord_price, pay_method)
+		values(#{ord_code}, #{mb_id}, #{ord_name},#{ord_zipcode},#{ord_addr},#{ord_deaddr},#{ord_tel},#{ord_price}, #{pay_method})
+	
+	</insert>
+	
+	<insert id="order_detail_save">
+	
+		INSERT INTO
+			ORDETAIL_TBL(ord_code, pro_num, ordt_amount, ordt_price)
+		SELECT 
+			#{ord_code}, c.pro_num, c.cart_amount, p.pro_dis_price 
+		FROM 
+			cart_tbl c INNER JOIN product_tbl p
+		ON 
+			c.pro_num = p.pro_num
+	
+	</insert>
+	
+	<insert id="payment_save">
+	
+		INSERT INTO 
+			PAYMENT_TBL(pay_code, ord_code, mb_id, pay_method, pay_price, pay_user, pay_bank, pay_memo, tid)
+		VALUES(
+			seq_payment_tbl.nextval, #{ord_code}, #{mb_id}, #{pay_method}, #{pay_price}, #{pay_user}, #{pay_bank}, #{pay_memo}, #{tid}
+			)
+	
+	</insert>
+	
+	<select id="contactOrder" resultType="com.coor.dto.OrderListDTO">
+		SELECT /*+ INDEX_DESC(o PK_ORDER_TBL)*/
+			o.ord_code, p.pro_num, p.pro_name, p.pro_up_folder, p.pro_up_img, o.ord_regdate
+		FROM
+			ORDER_TBL o INNER JOIN ORDETAIL_TBL od
+        ON
+            o.ord_code = od.ord_code
+        INNER JOIN PRODUCT_TBL p
+        ON
+            od.pro_num = p.pro_num
+        
+		WHERE
+			o.mb_id = #{mb_id}
+	</select>
+	
+	
+	
+	<select id="myorder" resultType="com.coor.dto.OrderListDTO">
+		<![CDATA[
+		SELECT
+			o.ord_code, o.mb_id, o.ord_name, o.ord_price, o.pay_method, od.ordt_amount, o.ord_cancel, o.ord_canceldate, o.ord_regdate, p.pro_num, p.pro_name, p.pro_up_folder, p.pro_up_img
+		FROM
+			(
+			SELECT /*+ INDEX_DESC(ORDER_TBL PK_ORDER_TBL)*/
+				ROWNUM RN, ord_code, mb_id, ord_name, ord_zipcode, ord_addr, ord_deaddr, ord_tel, ord_price, ord_cancel, ord_canceldate, ord_regdate, pay_method
+			FROM
+				ORDER_TBL
+			WHERE
+				mb_id = #{mb_id}
+			AND
+				ROWNUM <= (#{cri.pageNum} * #{cri.amount})
+			) o INNER JOIN ORDETAIL_TBL od
+		ON	
+			o.ord_code = od.ord_code
+		INNER JOIN 
+			PRODUCT_TBL p
+		ON
+			od.pro_num = p.pro_num		
+		WHERE
+			RN > ((#{cri.pageNum} - 1) * #{cri.amount})	
+		ORDER BY o.ord_code DESC
+			
+		]]>
+	</select>
+	
+	<select id="getTotalCount" resultType="int">
+	
+		SELECT 
+			COUNT(*) 
+		FROM 
+			ORDER_TBL
+		WHERE 
+			mb_id = #{mb_id}
+	
+	</select>
+	
+	<select id="orderCount" resultType="com.coor.dto.OrderListDTO">
+		SELECT
+			SUM(ord_price) as totalPrice, COUNT(*) as totalCount
+		FROM
+			ORDER_TBL
+		WHERE
+			mb_id = #{mb_id}
+	</select>
+	
+	<select id="getPaymentInfo" resultType="com.coor.domain.PaymentVO">
+		SELECT
+			*
+		FROM
+			PAYMENT_TBL
+		WHERE
+			ord_code = #{ord_code}
+	</select>
+	
+	<select id="detail_myorder" resultType="com.coor.domain.OrderDetailVO">
+	
+		SELECT 
+			ot.ord_code, ot.ordt_amount, ot.ordt_price, ot.pro_num, o.ord_name, o.ord_cancel, o.ord_regdate, p.pro_name, p.pro_up_folder, p.pro_up_img, p.pro_dis_price, p.pro_price, p.pro_discount, pm.pay_price, pm.pay_method, pm.pay_date, o.ord_zipcode, o.ord_addr, o.ord_deaddr
+		FROM 
+			ordetail_tbl ot INNER JOIN product_tbl p
+		ON 
+			ot.pro_num = p.pro_num
+		INNER JOIN payment_tbl pm
+		ON
+			ot.ord_code = pm.ord_code
+		INNER JOIN order_tbl o
+		ON
+			ot.ord_code = o.ord_code
+		INNER JOIN member_tbl M
+		ON
+			o.mb_id = m.mb_id
+		WHERE 
+			o.mb_id = #{mb_id}
+		AND
+			ot.ord_code = #{ord_code}
+			
+	</select>
+	
+	<update id="order_cancel">
+		UPDATE
+			ORDER_TBL
+		SET
+			ord_cancel = 'Y', ord_canceldate = SYSDATE
+		WHERE
+			ord_code = #{ord_code}
+	</update>
+</mapper>

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.coor.mapper.CartMapper">
+
+	<insert id="cart_add">
+		MERGE INTO
+			CART_TBL
+		USING
+			DUAL
+		ON
+			(mb_id = #{mb_id} and pro_num = #{pro_num} )
+		WHEN MATCHED THEN
+			UPDATE
+				SET cart_amount = cart_amount + #{cart_amount}
+		WHEN NOT MATCHED THEN
+			INSERT(cart_code, pro_num, mb_id, cart_amount)
+			VALUES(seq_cart_code.nextval, #{pro_num}, #{mb_id}, #{cart_amount})
+	
+	</insert>
+
+	<select id="cart_list" resultType="com.coor.dto.CartListDTO">
+		SELECT 
+		    rownum num, c.cart_code, p.pro_discount, p.pro_up_folder, p.pro_up_img, p.pro_num, p.pro_name, p.pro_price, c.cart_amount , (p.pro_dis_price * c.cart_amount) as unitprice
+		FROM 
+			PRODUCT_TBL p INNER JOIN CART_TBL c
+		ON 
+			p.pro_num = c.pro_num
+		WHERE 
+			c.mb_id = #{mb_id}
+	</select>
+	
+	<select id="cart_amount" resultType="int">
+		SELECT
+			COUNT(*)
+		FROM
+			CART_TBL
+		WHERE
+			mb_id = #{mb_id}
+	</select>
+	
+	<update id="cart_amount_change">
+	
+		UPDATE
+			CART_TBL
+		SET
+			cart_amount = #{cart_amount}
+		WHERE
+			cart_code = #{cart_code}	
+	</update>
+	
+	<select id="cart_tot_price" resultType="int">
+		
+		SELECT 
+			sum(p.pro_dis_price * c.cart_amount) as cart_tot_price 
+		FROM 
+			PRODUCT_TBL p INNER JOIN CART_TBL c
+		ON 
+			p.pro_num = c.pro_num
+		WHERE 
+			c.mb_id = #{mb_id}
+	
+	</select>
+	
+	
+	<delete id="cart_empty">
+	
+		DELETE FROM
+			CART_TBL
+		WHERE 
+			mb_id = #{mb_id}
+	</delete>
+	
+	<delete id="cart_delete">
+	
+		DELETE FROM
+			CART_TBL
+		WHERE 
+			cart_code = #{cart_code}
+	</delete>
+	
+
+</mapper>
